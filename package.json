@@ -1,0 +1,45 @@
+{
+  "name": "@hxym18/pwa-kit",
+  "version": "0.1.0",
+  "description": "PWA 接入 SDK：安装状态判定（core）+ 浏览器适配（web）+ React 绑定（react）+ 配置驱动 Service Worker 模板（sw）",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/everythingIsZero/pwa-kit.git"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./src/core/index.d.ts",
+      "import": "./src/core/index.mjs",
+      "default": "./src/core/index.mjs"
+    },
+    "./web": {
+      "types": "./src/web/index.d.ts",
+      "import": "./src/web/index.mjs",
+      "default": "./src/web/index.mjs"
+    },
+    "./react": {
+      "types": "./src/react/index.d.ts",
+      "import": "./src/react/index.mjs",
+      "default": "./src/react/index.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "test": "node --test 'test/**/*.test.mjs'"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  }
+}
