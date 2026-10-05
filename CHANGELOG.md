@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-05
+
+### Fixed
+
+- core 类型声明补 `pwaGuideOf`（v0.2.0 漏声明——TS 消费方导入直接编译失败）。
+- README 接入示例修正：`guideOpen` 不是 hook 返回值（引导层开关由业务站自己维护），原示例照抄会拿到 undefined。
+
 ## [0.2.0] - 2026-10-05
 
 ### Added

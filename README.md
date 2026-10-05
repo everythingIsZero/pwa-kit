@@ -70,17 +70,19 @@ if (process.env.NODE_ENV === 'production') registerSW('/sw.js')
 **④ 安装按钮**（放你想放的页面，如「我的」）：
 
 ```tsx
+import { useState } from 'react'
 import { usePwaInstall } from '@hxym18/pwa-kit/react'
 import { pwaGuideOf } from '@hxym18/pwa-kit'
 import { pwaFigureOf } from '@hxym18/pwa-kit/ui'
 
 const pwa = usePwaInstall() // status / canInstall / install() / result
+const [guideOpen, setGuideOpen] = useState(false) // 引导层开关由业务站自己维护
 
 // ① Android / PC 端（browser-prompt）：按钮直接弹浏览器安装确认框
 {pwa.status === 'browser-prompt' && <button onClick={pwa.install}>添加到主屏幕</button>}
 
 // ② iPhone Safari / 微信内：点按钮后弹「当前终端专属」引导层（图 + 步骤，只有一份）
-{(pwa.status === 'ios-guide' || pwa.status === 'wechat') && pwa.guideOpen && (() => {
+{(pwa.status === 'ios-guide' || pwa.status === 'wechat') && guideOpen && (() => {
   const guide = pwaGuideOf(pwa.status) // 运行时只会有当前终端的这一份
   return <GuideLayer title={guide.title} steps={guide.steps} svg={pwaFigureOf(guide.figure)} />
 })()}

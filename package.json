@@ -1,6 +1,6 @@
 {
   "name": "@hxym18/pwa-kit",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "PWA 接入 SDK：安装状态判定（core）+ 浏览器适配（web）+ React 绑定（react）+ 配置驱动 Service Worker 模板（sw）",
   "type": "module",
   "license": "MIT",

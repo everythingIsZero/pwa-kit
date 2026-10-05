@@ -18,3 +18,13 @@ export interface InstallState {
 
 export function judgeInstallState(signals?: Partial<PwaSignals>): InstallState
 export function renderPwaCopy(copyId: string): string
+
+/** 按终端的结构化引导数据（wechat / ios-guide / browser-prompt；其余状态返回 null） */
+export interface PwaGuideData {
+  title: string
+  steps: string[]
+  /** 对应 pwa-kit/ui pwaFigureOf 的图示 id */
+  figure: string
+}
+
+export function pwaGuideOf(status: InstallStatus): PwaGuideData | null
