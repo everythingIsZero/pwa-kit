@@ -23,7 +23,8 @@ export const INSTALL_STATUS = Object.freeze([
  *   - `isWeChat`：UA 含 MicroMessenger
  *   - `isMobileSafari`：iOS Safari 本尊（CriOS/FxiOS/EdgiOS 均不算——iOS 第三方浏览器装不了 PWA）
  *   - `hasPrompt`：beforeinstallprompt 事件已触发（时变，由 hook 维护）
- * @returns `{ status, canInstall, guide }`——`guide` 为引导文案 id（仅引导类状态非空）
+ * @returns `{ status, canInstall }`——引导数据（标题/步骤/图）一律走 `pwaGuideOf(status)`，
+ *   本函数不掺文案（数据结构单一，避免两处口径漂移）
  */
 export function judgeInstallState(signals = {}) {
   const s = signals || {}
@@ -44,9 +45,5 @@ export function judgeInstallState(signals = {}) {
   // isIOS 但非 Safari、非微信（微信已在前置分支）→ 直接判死，按钮隐藏，别给用户指死路。
   if (status === 'pending' && s.isIOS === true) status = 'unsupported'
 
-  return {
-    status,
-    canInstall: status === 'browser-prompt',
-    guide: status === 'wechat' ? 'pwa.guide.wechat' : status === 'ios-guide' ? 'pwa.guide.ios' : null,
-  }
+  return { status, canInstall: status === 'browser-prompt' }
 }

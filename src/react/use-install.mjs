@@ -14,7 +14,7 @@ import { judgeInstallState } from '../core/index.mjs'
 import { collectPwaSignals } from '../web/collect.mjs'
 
 /** 未知环境的初始态（SSR / 首帧） */
-const PENDING_STATE = Object.freeze({ status: 'pending', canInstall: false, guide: null })
+const PENDING_STATE = Object.freeze({ status: 'pending', canInstall: false })
 
 /**
  * 安装能力 hook。

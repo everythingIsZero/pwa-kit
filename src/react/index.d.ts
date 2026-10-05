@@ -4,7 +4,6 @@ export type InstallStatus = 'installed' | 'wechat' | 'ios-guide' | 'browser-prom
 export interface UsePwaInstall {
   status: InstallStatus
   canInstall: boolean
-  guide: 'pwa.guide.wechat' | 'pwa.guide.ios' | null
   install: () => Promise<{ ok: boolean; outcome: 'accepted' | 'dismissed' | 'no-prompt' | 'unknown' }>
   result: 'accepted' | 'dismissed' | 'unknown' | null
 }

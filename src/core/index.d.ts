@@ -14,7 +14,6 @@ export interface PwaSignals {
 export interface InstallState {
   status: InstallStatus
   canInstall: boolean
-  guide: 'pwa.guide.wechat' | 'pwa.guide.ios' | null
 }
 
 export function judgeInstallState(signals?: Partial<PwaSignals>): InstallState

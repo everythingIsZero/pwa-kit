@@ -14,18 +14,19 @@ test('已安装（standalone）：一切信号之上的最高优先级', () => {
   }
 })
 
-test('微信内未安装：无论 iOS / Android / 有无 prompt 事件，恒引导「浏览器打开」', () => {
+test('微信内未安装：无论 iOS / Android / 有无安装事件，恒引导「浏览器打开」', () => {
   assert.equal(judge({ isWeChat: true }).status, 'wechat')
   assert.equal(judge({ isWeChat: true, isMobileSafari: true }).status, 'wechat')
   assert.equal(judge({ isWeChat: true, hasPrompt: true }).status, 'wechat')
-  assert.equal(judge({ isWeChat: true }).guide, 'pwa.guide.wechat')
+  // 引导数据（标题/步骤/图）单一来源于 pwaGuideOf
+  assert.ok(pwaGuideOf('wechat').steps.some((t) => t.includes('浏览器打开')))
 })
 
 test('iOS Safari 未安装：引导「分享 → 添加到主屏幕」', () => {
   const r = judge({ isIOS: true, isMobileSafari: true })
   assert.equal(r.status, 'ios-guide')
-  assert.equal(r.guide, 'pwa.guide.ios')
   assert.equal(r.canInstall, false)
+  assert.ok(pwaGuideOf('ios-guide').steps.some((t) => t.includes('添加到主屏幕')))
 })
 
 test('iOS 非 Safari 浏览器（CriOS 等）：unsupported，不给死路引导', () => {
@@ -36,7 +37,6 @@ test('browser-prompt：Android/PC Chrome 系安装事件已到，可调 install(
   const r = judge({ hasPrompt: true })
   assert.equal(r.status, 'browser-prompt')
   assert.equal(r.canInstall, true)
-  assert.equal(r.guide, null)
 })
 
 test('pending：事件未到的初始等待态（SSR / 首帧）', () => {
@@ -59,9 +59,9 @@ test('canInstall 仅 browser-prompt 为 true', () => {
   }
 })
 
-test('文案表：引导文案可取且为中文口径；未知 id 原样返回', () => {
-  assert.ok(renderPwaCopy('pwa.guide.wechat').includes('浏览器打开'))
-  assert.ok(renderPwaCopy('pwa.guide.ios').includes('添加到主屏幕'))
+test('文案表：按钮/结果文案可取且为中文口径；未知 id 原样返回', () => {
+  assert.ok(renderPwaCopy('pwa.action.install').includes('主屏幕'))
+  assert.ok(renderPwaCopy('pwa.install.accepted').includes('主屏'))
   assert.equal(renderPwaCopy('nope'), 'nope')
 })
 
