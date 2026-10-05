@@ -1,5 +1,5 @@
 // hooks 返回类型（自包含声明，不跨目录 import）
-export type InstallStatus = 'installed' | 'wechat' | 'ios-guide' | 'native' | 'pending' | 'unsupported'
+export type InstallStatus = 'installed' | 'wechat' | 'ios-guide' | 'browser-prompt' | 'pending' | 'unsupported'
 
 export interface UsePwaInstall {
   status: InstallStatus

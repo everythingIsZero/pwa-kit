@@ -13,18 +13,27 @@ PWA 接入 SDK：把「添加到主屏幕」这件事里**每站必然重复的�
 | `.` | core：`judgeInstallState`（状态判定纯函数）+ `renderPwaCopy`（文案表） | 零依赖 |
 | `./web` | `collectPwaSignals`（信号采集）+ `registerSW`（SW 注册，失败静默） | 浏览器 |
 | `./react` | `usePwaInstall()` hook（时变信号维护 + `install()` 调起原生弹窗） | React ≥18（可选 peer） |
+| `./ui` | 引导示意图（SVG 字符串资产，`pwaFigureOf(figureId)`）——按终端画的「点哪里」线框图 | 零依赖 |
 | `src/sw/sw.template.js` | SW 模板：拷贝到站点 `public/sw.js`，改顶部 CONFIG | 部署产物 |
+
+## 引导口径（出资人 2026-10-05 拍板）
+
+- **不主动弹**：引导层只在用户点了「添加到主屏幕」之后出现，绝不在进页/挂载时弹出影响体验。
+- **点击后按终端分叉**：`browser-prompt` 态点击直接弹浏览器自己的安装确认框（系统自解释，不插引导层）；`wechat` / `ios-guide` 态点击没有原生反馈，此时弹引导层（示意图 + 三步内短句）。
+- **看得懂是硬标准**：core 给结构化引导（`pwaGuideOf(status)` → `{title, steps, figure}`），`./ui` 给配套 SVG 线框图（手机框 + 高亮圈 + 编号箭头 + 菜单高亮项，非厂商截图）；业务站用自己的设计语言渲染。看了更不明白不如不引导。
 
 ## 状态矩阵（core 的全部输出）
 
 | status | 场景 | 站点该做什么 |
 |---|---|---|
-| `installed` | 已在独立窗口运行 | 隐藏按钮或显示「已添加」 |
-| `wechat` | 微信内（装不了） | 显示引导：右上角「···」→「在浏览器打开」 |
-| `ios-guide` | iOS Safari 未安装 | 显示引导：分享按钮 →「添加到主屏幕」 |
-| `native` | Chrome/Edge 系，prompt 事件已到 | 显示按钮，点击调 `install()` |
-| `pending` | 初始等待态（SSR / 首帧 / 事件未到） | 隐藏按钮（hook 会在事件到达时更新） |
-| `unsupported` | 无安装路径（iOS 非 Safari 浏览器等） | 隐藏按钮 |
+| `installed` | 已在独立窗口运行（`display-mode: standalone` 检测） | **隐藏按钮**（已装） |
+| `wechat` | 微信内（装不了） | 显示按钮，点击弹引导：「···」→「在浏览器打开」 |
+| `ios-guide` | iPhone/iPad 的 Safari 未安装 | 显示按钮，点击弹引导：分享按钮 →「添加到主屏幕」 |
+| `browser-prompt` | Android / PC 端 Chrome、Edge 等，安装事件已到 | 显示按钮，点击直接弹浏览器自己的安装确认框 |
+| `pending` | 事件未到：暂不可装，**或早已安装过**（已装后浏览器不再发安装事件——天然覆盖「已添加则隐藏」） | **隐藏按钮**（事件到达时 hook 自动更新） |
+| `unsupported` | 无安装路径（iOS 非 Safari 浏览器、桌面 Firefox 等） | **隐藏按钮** |
+
+> **引导是「一个终端一份」**：判定按真实环境信号只输出一个状态，`pwaGuideOf(status)` 只返回当前终端的那一份引导——iOS 用户永远只看到 iOS 的步骤图，Android 用户只看到安装确认框说明，绝不会出现多平台引导列表让用户自己挑。
 
 ## 接入四步
 
@@ -62,13 +71,20 @@ if (process.env.NODE_ENV === 'production') registerSW('/sw.js')
 
 ```tsx
 import { usePwaInstall } from '@hxym18/pwa-kit/react'
-import { renderPwaCopy } from '@hxym18/pwa-kit'
+import { pwaGuideOf } from '@hxym18/pwa-kit'
+import { pwaFigureOf } from '@hxym18/pwa-kit/ui'
 
-const pwa = usePwaInstall()
-// pwa.status / pwa.canInstall / pwa.guide（文案 id，renderPwaCopy 取文案）/ pwa.install()
+const pwa = usePwaInstall() // status / canInstall / install() / result
 
-{pwa.status === 'native' && <button onClick={pwa.install}>添加到主屏幕</button>}
-{(pwa.status === 'ios-guide' || pwa.status === 'wechat') && <p>{renderPwaCopy(pwa.guide)}</p>}
+// ① Android / PC 端（browser-prompt）：按钮直接弹浏览器安装确认框
+{pwa.status === 'browser-prompt' && <button onClick={pwa.install}>添加到主屏幕</button>}
+
+// ② iPhone Safari / 微信内：点按钮后弹「当前终端专属」引导层（图 + 步骤，只有一份）
+{(pwa.status === 'ios-guide' || pwa.status === 'wechat') && pwa.guideOpen && (() => {
+  const guide = pwaGuideOf(pwa.status) // 运行时只会有当前终端的这一份
+  return <GuideLayer title={guide.title} steps={guide.steps} svg={pwaFigureOf(guide.figure)} />
+})()}
+// installed / pending / unsupported → 按钮隐藏（已装或装不了）
 ```
 
 ## 作用域声明（引入后页面发生什么 × 不发生什么）
@@ -76,7 +92,7 @@ const pwa = usePwaInstall()
 | 时机 | 发生什么 | 明确不发生什么 |
 |---|---|---|
 | 引入（注册 + hook） | 注册一次 SW（生产 https 才生效，失败静默）；hook 采集信号、监听 `beforeinstallprompt` / `appinstalled` | 不弹任何 UI；不改任何 DOM；开发环境（localhost）不注册 |
-| 你渲染按钮并点击 | native 态调起浏览器原生安装弹窗；结果回 `result`（accepted / dismissed） | 不自造安装流程（原生弹窗是浏览器唯一正道）；iOS / 微信不承诺弹窗（走引导文案） |
+| 你渲染按钮并点击 | browser-prompt 态调起浏览器原生安装弹窗；结果回 `result`（accepted / dismissed） | 不自造安装流程（原生弹窗是浏览器唯一正道）；iOS / 微信不承诺弹窗（走引导文案） |
 | SW 接管（下次访问起） | 静态资产缓存优先、导航网络优先、`NETWORK_ONLY` 路径纯直通 | 不缓存跨域请求；不缓存 POST；不缓存 `NETWORK_ONLY` 命中路径；更新不抢跑（等页签全关自然换血，页面不混版本） |
 | 移除（不注册 / 删 public/sw.js） | 新访问不再受 SW 控制；已装图标打开的是网站本身 | 不自动卸载已装 PWA（那是用户的系统操作）；旧缓存由浏览器按 `VERSION` 更换时清理 |
 

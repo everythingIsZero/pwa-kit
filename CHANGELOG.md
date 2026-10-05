@@ -4,6 +4,19 @@
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-05
+
+### Added
+
+- 引导能力三件套（出资人拍板口径：**点击后再引导、不主动弹、一个终端一份**）：
+  - core `pwaGuideOf(status)`：按终端的结构化引导数据（`{title, steps, figure}`，wechat / ios-guide / browser-prompt 三态全覆盖，运行时只输出当前终端那一份）。
+  - 新入口 `./ui`：`pwaFigureOf(figureId)` SVG 示意图资产（微信「···→浏览器打开」、iOS「分享→添加到主屏幕」、Chrome 系原生安装确认，三张 UI 线框图，内嵌无外部资产）。
+  - 引导渲染归业务站（用自己设计语言），本包只出数据 + 图示。
+
+### Changed
+
+- 状态名 `native` → `browser-prompt`（出资人反馈：术语黑话，改成人话——Android / PC 端 Chrome、Edge 等能弹浏览器安装框的环境）。
+
 ## [0.1.0] - 2026-10-05
 
 ### Added

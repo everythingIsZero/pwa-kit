@@ -3,7 +3,8 @@
  */
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { judgeInstallState, renderPwaCopy, INSTALL_STATUS } from '../src/core/index.mjs'
+import { judgeInstallState, renderPwaCopy, pwaGuideOf, INSTALL_STATUS } from '../src/core/index.mjs'
+import { pwaFigureOf, FIGURES } from '../src/ui/index.mjs'
 
 const judge = (s) => judgeInstallState(s)
 
@@ -31,9 +32,9 @@ test('iOS 非 Safari 浏览器（CriOS 等）：unsupported，不给死路引导
   assert.equal(judge({ isIOS: true }).status, 'unsupported')
 })
 
-test('Chrome/Edge 系 prompt 事件已到：native，可调 install()', () => {
+test('browser-prompt：Android/PC Chrome 系安装事件已到，可调 install()', () => {
   const r = judge({ hasPrompt: true })
-  assert.equal(r.status, 'native')
+  assert.equal(r.status, 'browser-prompt')
   assert.equal(r.canInstall, true)
   assert.equal(r.guide, null)
 })
@@ -44,17 +45,17 @@ test('pending：事件未到的初始等待态（SSR / 首帧）', () => {
   assert.equal(judge(null).status, 'pending')
 })
 
-test('canInstall 仅 native 为 true', () => {
+test('canInstall 仅 browser-prompt 为 true', () => {
   for (const status of INSTALL_STATUS) {
     const s = {
       installed: { isStandalone: true },
       wechat: { isWeChat: true },
       'ios-guide': { isMobileSafari: true },
-      native: { hasPrompt: true },
+      'browser-prompt': { hasPrompt: true },
       pending: {},
       unsupported: { isIOS: true },
     }[status]
-    assert.equal(judge(s).canInstall, status === 'native', status)
+    assert.equal(judge(s).canInstall, status === 'browser-prompt', status)
   }
 })
 
@@ -62,4 +63,19 @@ test('文案表：引导文案可取且为中文口径；未知 id 原样返回'
   assert.ok(renderPwaCopy('pwa.guide.wechat').includes('浏览器打开'))
   assert.ok(renderPwaCopy('pwa.guide.ios').includes('添加到主屏幕'))
   assert.equal(renderPwaCopy('nope'), 'nope')
+})
+
+test('结构化引导：三态全覆盖、每态有图有步骤（点击后再引导的口径）', () => {
+  for (const status of ['wechat', 'ios-guide', 'browser-prompt']) {
+    const g = pwaGuideOf(status)
+    assert.ok(g, status)
+    assert.ok(g.title.length >= 6, `${status} 标题太短`)
+    assert.ok(g.steps.length >= 1 && g.steps.length <= 3, `${status} 步骤须在 1-3 步`)
+    // 每个引导的 figure 必须真的有 SVG（引导要看得懂：有图）
+    assert.ok(pwaFigureOf(g.figure).startsWith('<svg'), `${status} 图示缺失`)
+  }
+  assert.equal(pwaGuideOf('pending'), null)
+  assert.equal(pwaGuideOf('installed'), null)
+  assert.equal(pwaFigureOf('nope'), '')
+  assert.ok(Object.keys(FIGURES).length === 3)
 })

@@ -7,12 +7,12 @@
 
 /** 安装状态全集（渲染口径，见 copy.mjs 文案表） */
 export const INSTALL_STATUS = Object.freeze([
-  'installed', // 已在独立窗口运行（standalone）→ 按钮隐藏或显示「已添加」
-  'wechat', // 微信内未安装 → 引导「··· → 浏览器打开」（微信 webview 永远装不了）
-  'ios-guide', // iOS Safari 未安装 → 引导「分享 → 添加到主屏幕」（iOS 无 beforeinstallprompt）
-  'native', // beforeinstallprompt 已到（Chrome/Edge 系）→ 按钮可调 prompt()
-  'pending', // 可能可装但事件未到（初始态；等不到即 unsupported）
-  'unsupported', // 无安装路径（iOS 非 Safari 浏览器 / 桌面 Firefox 等）
+  'installed', // 已在独立窗口运行（standalone）→ 按钮隐藏
+  'wechat', // 微信内未安装 → 点按钮弹引导「··· → 浏览器打开」
+  'ios-guide', // iPhone/iPad 的 Safari 未安装 → 点按钮弹引导「分享 → 添加到主屏幕」
+  'browser-prompt', // Android / PC 端 Chrome、Edge 等：浏览器原生安装框已就绪 → 按钮直接弹安装框
+  'pending', // 事件未到：可能暂不可装，也可能早已安装过（已装后浏览器不再发安装事件）→ 按钮隐藏
+  'unsupported', // 无安装路径（iOS 非 Safari 浏览器 / 桌面 Firefox 等）→ 按钮隐藏
 ])
 
 /**
@@ -32,12 +32,12 @@ export function judgeInstallState(signals = {}) {
   const iosSafari = s.isMobileSafari === true
   const prompt = s.hasPrompt === true
 
-  // 判定顺序即优先级：已装 > 微信（无论端，装不了）> iOS Safari 引导 > 原生 prompt > 待定
+  // 判定顺序即优先级：已装 > 微信（无论端，装不了）> iOS Safari 引导 > 浏览器安装框 > 待定
   let status
   if (standalone) status = 'installed'
   else if (wechat) status = 'wechat'
   else if (iosSafari) status = 'ios-guide'
-  else if (prompt) status = 'native'
+  else if (prompt) status = 'browser-prompt'
   else status = 'pending'
 
   // pending 且明确无路径的环境 → unsupported：iOS 非 Safari 浏览器没有「添加到主屏幕」。
@@ -46,7 +46,7 @@ export function judgeInstallState(signals = {}) {
 
   return {
     status,
-    canInstall: status === 'native',
+    canInstall: status === 'browser-prompt',
     guide: status === 'wechat' ? 'pwa.guide.wechat' : status === 'ios-guide' ? 'pwa.guide.ios' : null,
   }
 }

@@ -19,9 +19,9 @@ const PENDING_STATE = Object.freeze({ status: 'pending', canInstall: false, guid
 /**
  * 安装能力 hook。
  *
- * @returns `{ status, canInstall, guide, install, result }`
- *   - `status`：见 core `INSTALL_STATUS`（installed / wechat / ios-guide / native / pending / unsupported）
- *   - `install()`：仅 native 态有意义——调起浏览器原生安装弹窗，返回
+ * @returns `{ status, canInstall, install, result }`
+ *   - `status`：见 core `INSTALL_STATUS`（installed / wechat / ios-guide / browser-prompt / pending / unsupported）
+ *   - `install()`：仅 browser-prompt 态有意义——调起浏览器原生安装弹窗，返回
  *     `{ ok, outcome }`（accepted / dismissed / no-prompt / unknown）
  *   - `result`：最近一次 install() 的 outcome（null = 还没点过；给按钮反馈用）
  */
