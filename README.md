@@ -12,9 +12,9 @@ PWA 接入 SDK：把「添加到主屏幕」这件事里**每站必然重复的�
 |---|---|---|
 | `.` | core：`judgeInstallState`（状态判定纯函数）+ `renderPwaCopy`（文案表） | 零依赖 |
 | `./web` | `collectPwaSignals`（信号采集）+ `registerSW`（SW 注册，失败静默） | 浏览器 |
-| `./react` | `usePwaInstall()` hook（时变信号维护 + `install()` 调起原生弹窗） | React ≥18（可选 peer） |
+| `./react` | `usePwaInstall()`（安装）+ `usePwaUpdate()`（更新提示，配 `shouldPromptUpdate`）hook | React ≥18（可选 peer） |
 | `./ui` | 引导示意图（SVG 字符串资产，`pwaFigureOf(figureId)`）——按终端画的「点哪里」线框图 | 零依赖 |
-| `./sw` | SW 生成器：`buildSw(config)` 构建期生成站点 `public/sw.js`（默认不缓存） | 零依赖 |
+| `./sw` | SW 生成器：`buildSw(config)` 构建期生成站点 `public/sw.js`（默认不缓存；`version` 必填非空） | 零依赖 |
 
 ## 引导口径（出资人 2026-10-05 拍板）
 
@@ -102,6 +102,17 @@ const [guideOpen, setGuideOpen] = useState(false) // 引导层开关由业务站
 })()}
 // installed / pending / unsupported → 按钮隐藏（已装或装不了）
 ```
+
+**⑤ 更新提示**（默认不抢跑 → 长驻 PWA 会久留旧版，站点自己给「有新版本」提示）：
+
+```tsx
+import { usePwaUpdate } from '@hxym18/pwa-kit/react'
+const { updateAvailable, applyUpdate } = usePwaUpdate('/sw.js')
+// updateAvailable：新 SW 已装好、等待接管（首次安装不提示）
+{updateAvailable && <button onClick={applyUpdate}>有新版本，点此刷新</button>}
+```
+
+`applyUpdate()` 向 waiting SW 发 `SKIP_WAITING`（生成物的 `message` 监听据此 `self.skipWaiting()` 立即接管），并在 `controllerchange` 后自动 `location.reload()`。
 
 ## 作用域声明（引入后页面发生什么 × 不发生什么）
 

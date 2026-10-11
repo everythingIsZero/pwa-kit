@@ -27,3 +27,17 @@ test('buildSw 产物可执行（冒烟）：无未定义标识符，行为正确
   assert.equal(cacheableResponse({ status: 200, cacheControl: 'no-store' }), false)
   assert.equal(cacheableResponse({ status: 200, cacheControl: 'public' }), true)
 })
+
+test('buildSw：version 为空/非字符串 → TypeError（容器无 .git 取空不得静默退化）', () => {
+  assert.throws(() => buildSw({ version: '', rules: [] }), /version/)
+  assert.throws(() => buildSw({ version: '   ', rules: [] }), /version/)
+  assert.throws(() => buildSw({ version: undefined, rules: [] }), /version/)
+  assert.throws(() => buildSw({ version: null, rules: [] }), /version/)
+  assert.throws(() => buildSw({ version: 123, rules: [] }), /version/)
+})
+
+test('buildSw：产物含 SKIP_WAITING → self.skipWaiting（用户触发更新立即接管）', () => {
+  const sw = buildSw({ version: 'v1', rules: [] })
+  assert.match(sw, /SKIP_WAITING/)
+  assert.match(sw, /addEventListener\('message'/)
+})

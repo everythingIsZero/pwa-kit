@@ -4,7 +4,8 @@
  * 单源：策略函数直接取 `policy.mjs` 导出函数的 `.toString()` 内联，生成物与包内策略永远一致。
  * 生成物约定（配合执行级冒烟测试 `new Function(...)` 求值）：
  *   - 顶层用**裸** `addEventListener('install'|'activate'|'fetch', ...)`（不写 `self.addEventListener`）。
- *   - 顶层不得引用未定义标识符；`self.skipWaiting()` / `self.clients.claim()` 只在对应 config 为真时出现。
+ *   - 顶层不得引用未定义标识符；install 的 `self.skipWaiting()` / activate 的 `self.clients.claim()` 只在对应 config 为真时出现。
+ *   - `message` 监听始终含 `SKIP_WAITING` → `self.skipWaiting()`（用户触发更新时立即接管）。
  *   - 始终写入 `defaultStrategy`（缺省 `'network-only'`）。
  */
 
@@ -12,7 +13,8 @@ import { STRATEGY, DEFAULT_STRATEGY, strategyFor, cacheableResponse, decideReque
 
 /**
  * SW 运行体（prelude 之后）。不含模板字面量，便于整体嵌入。
- * `self.skipWaiting()` / `self.clients.claim()` 按 config **构建期**决定是否出现（缺省不出现）。
+ * install 的 `self.skipWaiting()` / activate 的 `self.clients.claim()` 按 config **构建期**决定是否出现（缺省不出现）；
+ * `message` 监听始终存在（`SKIP_WAITING` 供用户触发更新时立即接管）。
  * @param {{ skipWaiting: boolean, clientsClaim: boolean }} resolved
  * @returns {string}
  */
@@ -36,6 +38,10 @@ ${clientsClaimLine}      const names = await caches.keys()
       await Promise.all(names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n)))
     })(),
   )
+})
+
+addEventListener('message', (event) => {
+  if (event && event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting()
 })
 
 addEventListener('fetch', (event) => {
@@ -118,6 +124,12 @@ async function networkFirst(request) {
  * @returns {string}
  */
 export function buildSw(config) {
+  if (typeof config.version !== 'string' || config.version.trim() === '') {
+    throw new TypeError(
+      'buildSw: `version` must be a non-empty string (e.g. SW_VERSION, default git rev-parse --short HEAD); received ' +
+        JSON.stringify(config.version),
+    )
+  }
   const resolved = {
     version: config.version,
     rules: config.rules || [],
