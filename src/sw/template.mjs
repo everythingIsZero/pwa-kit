@@ -126,7 +126,7 @@ async function networkFirst(request) {
 export function buildSw(config) {
   if (typeof config.version !== 'string' || config.version.trim() === '') {
     throw new TypeError(
-      'buildSw: `version` must be a non-empty string (e.g. SW_VERSION, default git rev-parse --short HEAD); received ' +
+      'buildSw: `version` must be a non-empty string (inject SW_VERSION at build/deploy; do not default to dev); received ' +
         JSON.stringify(config.version),
     )
   }

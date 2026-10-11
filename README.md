@@ -58,7 +58,7 @@ export default function manifest(): MetadataRoute.Manifest {
 }
 ```
 
-**② Service Worker**：站点**构建期**用 `@hxym18/pwa-kit/sw` 的 `buildSw(config)` 生成 `public/sw.js`（**不提交**，加进 `.gitignore`）。`VERSION` 为构建期显式输入（`SW_VERSION`，缺省 `git rev-parse --short HEAD`）——变更即由 `activate` 清掉全部旧版本缓存。`rules` 只放**内容 hash 的不可变静态**（`cache-first`）；其余同源 GET 默认 `network-only`（**默认不缓存，含导航**；离线非目标，`offlineUrl` 缺省关闭）。
+**② Service Worker**：站点**构建期**用 `@hxym18/pwa-kit/sw` 的 `buildSw(config)` 生成 `public/sw.js`（**不提交**，加进 `.gitignore`）。`VERSION` 为**部署/CI 显式注入**的输入（`SW_VERSION`）——在 CI/开发机取 SHA 后传入（如 `docker build --build-arg SW_VERSION=$(git rev-parse --short HEAD)`），**不依赖构建容器内的 `.git`**（容器通常没有）；**为空必须构建报错**，不得静默退化。变更即由 `activate` 清掉全部旧版本缓存。`rules` 只放**内容 hash 的不可变静态**（`cache-first`）；其余同源 GET 默认 `network-only`（**默认不缓存，含导航**；离线非目标，`offlineUrl` 缺省关闭）。
 
 ```js
 // scripts/gen-sw.mjs（构建前置执行）
@@ -66,7 +66,7 @@ import { writeFileSync } from 'node:fs'
 import { buildSw } from '@hxym18/pwa-kit/sw'
 
 const config = {
-  version: process.env.SW_VERSION || 'dev', // ⚠️ 发版必换，旧缓存据此清理
+  version: process.env.SW_VERSION, // 部署/CI 注入（--build-arg）；为空 buildSw 抛错，不兜默认
   rules: [{ match: '/_next/static/', strategy: 'cache-first' }], // 仅不可变静态
 }
 writeFileSync('public/sw.js', buildSw(config))

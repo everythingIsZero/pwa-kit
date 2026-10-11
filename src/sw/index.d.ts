@@ -13,7 +13,7 @@ export interface SwPolicy {
 
 /** `buildSw` 入参；`defaultStrategy` 缺省 `'network-only'`，`skipWaiting`/`clientsClaim` 缺省 false */
 export interface SwConfig {
-  /** 构建期显式输入（如 `SW_VERSION`），缺省约定为 `git rev-parse --short HEAD` */
+  /** 构建期显式输入（如 `SW_VERSION`）；由部署/CI 注入，为空即抛错（不得静默退化） */
   version: string
   rules: SwRule[]
   defaultStrategy?: SwStrategy
