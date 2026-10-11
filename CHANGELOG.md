@@ -4,9 +4,19 @@
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-11
+
 ### Added
 
 - **`./manifest` 出口 + `buildManifest(input)`**（spec §6.5 品牌 manifest 扩展面）：生成 PWA manifest 普通对象（snake_case，无函数/undefined，可 JSON 序列化），Next `app/manifest.ts` 可直接返回。默认值取业界坑项——显式 `id:'/'`（X15）、`start_url:'/'`、`display:'standalone'`、图标 192/512 + `purpose:'any maskable'`（X16）；站点传值即**纯覆盖**，`name` 必填。纯函数、零依赖。
+
+### Changed（行为变更）
+
+- **敏感前缀成为硬底线（S1）**：`SENSITIVE_PREFIXES`（`/s/` `/r/` `/api/`）在 `decideRequest` 内强制 `network-only`——**站点 `rules` 把敏感前缀配成 `cache-first` 也不生效**（站点只能加不能减）；`buildSw` 把该清单注入生成物的 `CONFIG.sensitivePrefixes`，忽略站点传入的同名值。
+
+### Chore
+
+- 包内**契约副本**声明（`hxym18.contracts`）：`sensitive-prefixes@1`、`cache-policy@1`。
 
 ## [0.3.1] - 2026-10-11
 
