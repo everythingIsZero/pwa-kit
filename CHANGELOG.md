@@ -4,6 +4,18 @@
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-10-11
+
+### Fixed
+
+- SW 策略：导航请求永不缓存（`navigate` → `network-only`），避免旧 HTML 命中缓存。
+- SW 策略：`Cache-Control` 参数化形式识别（如 `private="set-cookie"`）——`private` 前缀即视为不可缓存。
+- `buildSw` 强制非空 `version`：缺失或空串直接抛错，不兜默认（部署边界由 `test -n "$SW_VERSION"` 拦）。
+
+### Added
+
+- 更新提示支持：SW 处理 `SKIP_WAITING` 消息；新增 `usePwaUpdate` hook 与 `shouldPromptUpdate` 纯函数。
+
 ## [0.3.0] - 2026-10-11
 
 ### Added
