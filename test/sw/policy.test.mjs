@@ -20,6 +20,14 @@ test('decideRequest：同源 GET 导航默认 network-only', () => {
   assert.deepEqual(decideRequest({ method: 'GET', mode: 'navigate', sameOrigin: true, path: '/' }, policy), { strategy: 'network-only' })
 })
 
+test('decideRequest：导航即使命中规则也不缓存（安全强制）', () => {
+  const navPolicy = { rules: [{ match: '/blog/', strategy: 'cache-first' }], defaultStrategy: 'network-only' }
+  assert.deepEqual(
+    decideRequest({ method: 'GET', mode: 'navigate', sameOrigin: true, path: '/blog/1' }, navPolicy),
+    { strategy: 'network-only' },
+  )
+})
+
 test('cacheableResponse：仅 200 且无 no-store/private 且 Vary 干净才可缓存', () => {
   assert.equal(cacheableResponse({ status: 200, cacheControl: 'public, max-age=31536000, immutable' }), true)
   assert.equal(cacheableResponse({ status: 206, cacheControl: 'public' }), false)       // RF1

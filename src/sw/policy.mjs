@@ -58,5 +58,6 @@ export function cacheableResponse(meta) {
 export function decideRequest(req, policy) {
   if (req.method !== 'GET') return { bypass: true }
   if (!req.sameOrigin) return { bypass: true }
+  if (req.mode === 'navigate') return { strategy: 'network-only' }
   return { strategy: strategyFor(req.path, policy) }
 }
