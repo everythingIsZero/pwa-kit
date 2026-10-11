@@ -34,13 +34,19 @@
       "import": "./src/ui/index.mjs",
       "default": "./src/ui/index.mjs"
     },
+    "./sw": {
+      "types": "./src/sw/index.d.ts",
+      "import": "./src/sw/index.mjs",
+      "default": "./src/sw/index.mjs"
+    },
     "./package.json": "./package.json"
   },
   "typesVersions": {
     "*": {
       "web": ["src/web/index.d.ts"],
       "react": ["src/react/index.d.ts"],
-      "ui": ["src/ui/index.d.ts"]
+      "ui": ["src/ui/index.d.ts"],
+      "sw": ["src/sw/index.d.ts"]
     }
   },
   "scripts": {

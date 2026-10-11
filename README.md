@@ -1,6 +1,6 @@
 # pwa-kit
 
-PWA 接入 SDK：把「添加到主屏幕」这件事里**每站必然重复的部分**抽成一份——安装状态判定（core）+ 浏览器适配（web）+ React 绑定（react）+ 配置驱动的 Service Worker 模板（sw）。站点只出配置（manifest 品牌字段、缓存排除清单），不写任何环境分支。
+PWA 接入 SDK：把「添加到主屏幕」这件事里**每站必然重复的部分**抽成一份——安装状态判定（core）+ 浏览器适配（web）+ React 绑定（react）+ Service Worker 生成器（sw）。站点只出配置（manifest 品牌字段、缓存规则），不写任何环境分支。
 
 ## 为什么需要它
 
@@ -14,7 +14,7 @@ PWA 接入 SDK：把「添加到主屏幕」这件事里**每站必然重复的�
 | `./web` | `collectPwaSignals`（信号采集）+ `registerSW`（SW 注册，失败静默） | 浏览器 |
 | `./react` | `usePwaInstall()` hook（时变信号维护 + `install()` 调起原生弹窗） | React ≥18（可选 peer） |
 | `./ui` | 引导示意图（SVG 字符串资产，`pwaFigureOf(figureId)`）——按终端画的「点哪里」线框图 | 零依赖 |
-| `src/sw/sw.template.js` | SW 模板：拷贝到站点 `public/sw.js`，改顶部 CONFIG | 部署产物 |
+| `./sw` | SW 生成器：`buildSw(config)` 构建期生成站点 `public/sw.js`（默认不缓存） | 零依赖 |
 
 ## 引导口径（出资人 2026-10-05 拍板）
 
@@ -58,7 +58,21 @@ export default function manifest(): MetadataRoute.Manifest {
 }
 ```
 
-**② Service Worker**：把 `src/sw/sw.template.js` 拷到站点 `public/sw.js`，改顶部 `CONFIG`——**发版必改 `VERSION`**；**带 token / 接口路径必须进 `NETWORK_ONLY`**（进缓存 = 离线可读 = 泄露）。
+**② Service Worker**：站点**构建期**用 `@hxym18/pwa-kit/sw` 的 `buildSw(config)` 生成 `public/sw.js`（**不提交**，加进 `.gitignore`）。`VERSION` 为构建期显式输入（`SW_VERSION`，缺省 `git rev-parse --short HEAD`）——变更即由 `activate` 清掉全部旧版本缓存。`rules` 只放**内容 hash 的不可变静态**（`cache-first`）；其余同源 GET 默认 `network-only`（**默认不缓存，含导航**；离线非目标，`offlineUrl` 缺省关闭）。
+
+```js
+// scripts/gen-sw.mjs（构建前置执行）
+import { writeFileSync } from 'node:fs'
+import { buildSw } from '@hxym18/pwa-kit/sw'
+
+const config = {
+  version: process.env.SW_VERSION || 'dev', // ⚠️ 发版必换，旧缓存据此清理
+  rules: [{ match: '/_next/static/', strategy: 'cache-first' }], // 仅不可变静态
+}
+writeFileSync('public/sw.js', buildSw(config))
+```
+
+写缓存前一律过硬条件守卫：`status === 200` 且 `Cache-Control` 不含 `no-store|private` 且 `Vary` 不含 `Cookie|Authorization|*`——带 token / 私密响应永不进缓存（`206` 分片亦不缓存）。
 
 **③ 注册**（应用入口或根布局的客户端侧，仅生产）：
 
@@ -95,14 +109,14 @@ const [guideOpen, setGuideOpen] = useState(false) // 引导层开关由业务站
 |---|---|---|
 | 引入（注册 + hook） | 注册一次 SW（生产 https 才生效，失败静默）；hook 采集信号、监听 `beforeinstallprompt` / `appinstalled` | 不弹任何 UI；不改任何 DOM；开发环境（localhost）不注册 |
 | 你渲染按钮并点击 | browser-prompt 态调起浏览器原生安装弹窗；结果回 `result`（accepted / dismissed） | 不自造安装流程（原生弹窗是浏览器唯一正道）；iOS / 微信不承诺弹窗（走引导文案） |
-| SW 接管（下次访问起） | 静态资产缓存优先、导航网络优先、`NETWORK_ONLY` 路径纯直通 | 不缓存跨域请求；不缓存 POST；不缓存 `NETWORK_ONLY` 命中路径；更新不抢跑（等页签全关自然换血，页面不混版本） |
+| SW 接管（下次访问起） | 规则命中的不可变静态缓存优先；其余同源 GET 默认 `network-only`（纯网络直通，不缓存） | 不缓存跨域请求；不缓存 POST；不缓存导航（含带 query/token 的路径）；不缓存 `no-store`/`private`/`206`/`Vary: Cookie` 响应；更新不抢跑（等页签全关自然换血，页面不混版本） |
 | 移除（不注册 / 删 public/sw.js） | 新访问不再受 SW 控制；已装图标打开的是网站本身 | 不自动卸载已装 PWA（那是用户的系统操作）；旧缓存由浏览器按 `VERSION` 更换时清理 |
 
 ## Use Cases
 
 - **内部工具加移动入口**（家庭 / 团队工具站，微信内传播但希望常驻使用）→ 我的页放安装区块，微信内自动转「浏览器打开」引导
-- **内容站离线化** → SW 模板 `PRECACHE` 首屏 + `OFFLINE_URL` 兜底
-- **带分享 token 的站** → `NETWORK_ONLY: [/^\/s\//]`，分享页绝不进缓存
+- **内容站离线化** → `rules` 收进首屏不可变静态（`cache-first`），并显式配 `offlineUrl` 兜底（默认关闭）
+- **带分享 token 的站** → 默认 `network-only` 已覆盖：带 token 的导航不进缓存，无需额外配置
 
 ## 与 share-kit 的边界
 
