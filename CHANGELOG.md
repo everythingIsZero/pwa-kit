@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- **`./manifest` 出口 + `buildManifest(input)`**（spec §6.5 品牌 manifest 扩展面）：生成 PWA manifest 普通对象（snake_case，无函数/undefined，可 JSON 序列化），Next `app/manifest.ts` 可直接返回。默认值取业界坑项——显式 `id:'/'`（X15）、`start_url:'/'`、`display:'standalone'`、图标 192/512 + `purpose:'any maskable'`（X16）；站点传值即**纯覆盖**，`name` 必填。纯函数、零依赖。
+
 ## [0.3.1] - 2026-10-11
 
 ### Fixed

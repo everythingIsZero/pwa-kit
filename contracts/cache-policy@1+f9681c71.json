@@ -1,0 +1,25 @@
+{
+  "cacheableResponse": {
+    "cacheControlExcludes": [
+      "no-store",
+      "private"
+    ],
+    "statuses": [
+      200
+    ],
+    "varyExcludes": [
+      "cookie",
+      "authorization",
+      "*"
+    ]
+  },
+  "defaultStrategy": "network-only",
+  "navigationStrategy": "network-only",
+  "offlineUrl": false,
+  "publicCacheable": false,
+  "sensitivePrefixes": [
+    "/s/",
+    "/r/",
+    "/api/"
+  ]
+}

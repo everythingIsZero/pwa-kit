@@ -39,14 +39,30 @@
       "import": "./src/sw/index.mjs",
       "default": "./src/sw/index.mjs"
     },
+    "./manifest": {
+      "types": "./src/manifest/index.d.ts",
+      "import": "./src/manifest/index.mjs",
+      "default": "./src/manifest/index.mjs"
+    },
     "./package.json": "./package.json"
   },
   "typesVersions": {
     "*": {
-      "web": ["src/web/index.d.ts"],
-      "react": ["src/react/index.d.ts"],
-      "ui": ["src/ui/index.d.ts"],
-      "sw": ["src/sw/index.d.ts"]
+      "web": [
+        "src/web/index.d.ts"
+      ],
+      "react": [
+        "src/react/index.d.ts"
+      ],
+      "ui": [
+        "src/ui/index.d.ts"
+      ],
+      "sw": [
+        "src/sw/index.d.ts"
+      ],
+      "manifest": [
+        "src/manifest/index.d.ts"
+      ]
     }
   },
   "scripts": {
@@ -58,6 +74,13 @@
   "peerDependenciesMeta": {
     "react": {
       "optional": true
+    }
+  },
+  "hxym18": {
+    "contracts": {
+      "sensitive-prefixes": "1+262b9b7c",
+      "cache-policy": "1+f9681c71",
+      "contracts": "1+189b5717"
     }
   }
 }

@@ -15,6 +15,7 @@ PWA 接入 SDK：把「添加到主屏幕」这件事里**每站必然重复的�
 | `./react` | `usePwaInstall()`（安装）+ `usePwaUpdate()`（更新提示，配 `shouldPromptUpdate`）hook | React ≥18（可选 peer） |
 | `./ui` | 引导示意图（SVG 字符串资产，`pwaFigureOf(figureId)`）——按终端画的「点哪里」线框图 | 零依赖 |
 | `./sw` | SW 生成器：`buildSw(config)` 构建期生成站点 `public/sw.js`（默认不缓存；`version` 必填非空） | 零依赖 |
+| `./manifest` | 品牌 manifest 构建器：`buildManifest({name,...})` → PWA manifest 普通对象（默认值已避坑，站点纯覆盖） | 零依赖 |
 
 ## 引导口径（出资人 2026-10-05 拍板）
 
@@ -41,22 +42,38 @@ PWA 接入 SDK：把「添加到主屏幕」这件事里**每站必然重复的�
 bun add github:everythingIsZero/pwa-kit#v0.1.0   # 或 pnpm add
 ```
 
-**① manifest**（每站必然自己出：名称 / 图标 / 主题色）。Next.js 用 `app/manifest.ts`：
+**① manifest**（站点出品牌字段：名称 / 图标 / 主题色）。用 `@hxym18/pwa-kit/manifest` 的 `buildManifest({...})`——默认值已按业界坑项兜好，站点不重复踩。Next.js 用 `app/manifest.ts`：
 
 ```ts
+// app/manifest.ts
 import type { MetadataRoute } from 'next'
+import { buildManifest } from '@hxym18/pwa-kit/manifest'
+
 export default function manifest(): MetadataRoute.Manifest {
-  return {
-    name: '你的站名', short_name: '短名',
-    icons: [
-      { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
-    ],
-    theme_color: '#0A84FF', background_color: '#F5F6F8',
-    display: 'standalone', start_url: '/',
-  }
+  return buildManifest({
+    name: '材料报告生成',
+    shortName: '材料报告',
+    description: 'Word 模板在线填写与 docx 批量生成',
+    themeColor: '#1668dc',
+    backgroundColor: '#f5f6f8',
+  }) as MetadataRoute.Manifest
 }
 ```
+
+**默认值（有据可依）**——站点传同名字段即**纯覆盖**（不做隐式合并，避免「到底哪个生效」）：
+
+| 字段 | 默认 | 理由 |
+|---|---|---|
+| `id` | `'/'` | 不设时浏览器由 `start_url` 派生应用身份，将来改 `start_url` 会被当成**另一个应用**（pitfalls X15）——故**显式**给 `id` |
+| `start_url` | `'/'` | 安装后回到根路由，最常见的入口诉求 |
+| `display` | `'standalone'` | 独立窗口打开（无浏览器地址栏），「装成 App」的默认预期 |
+| `icons` | 192/512 两档，均 `purpose:'any maskable'` | 缺 `purpose:'any maskable'` 时 Android 主屏会裁掉图标外圈 / 加白边（pitfalls X16） |
+
+`buildManifest` 返回**普通对象**（snake_case 键，无函数 / `undefined`），可直接 `JSON.stringify`；`name` 必填，空则抛 `TypeError`。
+
+> **TS 提示**：Next 14 的 `MetadataRoute.Manifest` 图标 `purpose` 只认单个字面量（`'any' | 'maskable' | …`），不认 W3C 允许的 `'any maskable'` 组合串，故 `return` 处需 `as MetadataRoute.Manifest`（如上例）。纯 JS / 非 Next 站无需断言。
+
+> **iOS 图标**（pitfalls X18）：manifest 的 `icons` 只服务 Android / 桌面；iOS「添加到主屏幕」用的是 `<link rel="apple-touch-icon" href="/apple-touch-icon.png">`（**缺则用页面截图，很丑**）。放好 180×180 的 `public/apple-touch-icon.png`，并在 layout 显式声明 link。
 
 **② Service Worker**：站点**构建期**用 `@hxym18/pwa-kit/sw` 的 `buildSw(config)` 生成 `public/sw.js`（**不提交**，加进 `.gitignore`）。`VERSION` 为**部署/CI 显式注入**的输入（`SW_VERSION`）——在 CI/开发机取 SHA 后传入（如 `docker build --build-arg SW_VERSION=$(git rev-parse --short HEAD)`），**不依赖构建容器内的 `.git`**（容器通常没有）；**为空必须构建报错**，不得静默退化。变更即由 `activate` 清掉全部旧版本缓存。`rules` 只放**内容 hash 的不可变静态**（`cache-first`）；其余同源 GET 默认 `network-only`（**默认不缓存，含导航**；离线非目标，`offlineUrl` 缺省关闭）。
 
