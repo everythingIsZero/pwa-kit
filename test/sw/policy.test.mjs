@@ -1,9 +1,25 @@
 // Projects/pwa-kit/test/sw/policy.test.mjs
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { strategyFor, cacheableResponse, decideRequest } from '../../src/sw/policy.mjs'
+import { strategyFor, cacheableResponse, decideRequest, SENSITIVE_PREFIXES } from '../../src/sw/policy.mjs'
 
 const policy = { rules: [{ match: '/_next/static/', strategy: 'cache-first' }], defaultStrategy: 'network-only' }
+
+test('SENSITIVE_PREFIXES：硬底线常量含必需项', () => {
+  assert.ok(Object.isFrozen(SENSITIVE_PREFIXES))
+  for (const p of ['/s/', '/r/', '/api/']) assert.ok(SENSITIVE_PREFIXES.includes(p), `缺 ${p}`)
+})
+
+test('decideRequest：敏感前缀硬底线——站点 rules 命中 cache-first 也不缓存/不走缓存', () => {
+  const sensitive = {
+    rules: [{ match: '/s/', strategy: 'cache-first' }],
+    defaultStrategy: 'network-only',
+    sensitivePrefixes: SENSITIVE_PREFIXES,
+  }
+  assert.deepEqual(decideRequest({ method: 'GET', mode: 'cors', sameOrigin: true, path: '/s/x' }, sensitive), { strategy: 'network-only' })
+  assert.deepEqual(decideRequest({ method: 'GET', mode: 'cors', sameOrigin: true, path: '/r/y' }, sensitive), { strategy: 'network-only' })
+  assert.deepEqual(decideRequest({ method: 'GET', mode: 'cors', sameOrigin: true, path: '/api/z' }, sensitive), { strategy: 'network-only' })
+})
 
 test('strategyFor：命中用规则策略，未命中默认 network-only（含 query 路径）', () => {
   assert.equal(strategyFor('/_next/static/chunk.js', policy), 'cache-first')

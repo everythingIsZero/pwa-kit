@@ -9,7 +9,7 @@
  *   - 始终写入 `defaultStrategy`（缺省 `'network-only'`）。
  */
 
-import { STRATEGY, DEFAULT_STRATEGY, strategyFor, cacheableResponse, decideRequest } from './policy.mjs'
+import { STRATEGY, DEFAULT_STRATEGY, SENSITIVE_PREFIXES, strategyFor, cacheableResponse, decideRequest } from './policy.mjs'
 
 /**
  * SW 运行体（prelude 之后）。不含模板字面量，便于整体嵌入。
@@ -120,7 +120,8 @@ async function networkFirst(request) {
  *   offlineUrl?: string | null,
  *   skipWaiting?: boolean,
  *   clientsClaim?: boolean,
- * }} config
+ *   sensitivePrefixes?: string[],
+ * }} config `sensitivePrefixes` 由包内硬底线决定，站点传入值被忽略
  * @returns {string}
  */
 export function buildSw(config) {
@@ -137,6 +138,8 @@ export function buildSw(config) {
     offlineUrl: config.offlineUrl ?? null,
     skipWaiting: !!config.skipWaiting,
     clientsClaim: !!config.clientsClaim,
+    // 硬底线：始终注入包内 SENSITIVE_PREFIXES，**忽略站点传入的同名值**（站点只能加规则，不能删敏感前缀）。
+    sensitivePrefixes: SENSITIVE_PREFIXES,
   }
 
   const prelude = [

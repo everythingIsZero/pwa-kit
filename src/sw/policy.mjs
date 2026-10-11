@@ -15,6 +15,18 @@ export const STRATEGY = {
 export const DEFAULT_STRATEGY = 'network-only'
 
 /**
+ * 敏感前缀硬底线：命中者**永不缓存、也不从缓存读**（强制 network-only），
+ * 即使站点 `rules` 把它们配成 `cache-first` 也不行。站点**只能加不能减**。
+ *
+ * 跨包同源：与 analytics `DEFAULT_DENY_PREFIXES`、auth `SENSITIVE_PREFIXES` 集合相等
+ * （workspace `scripts/e2e/prefix-consistency.test.mjs` 核对）。`buildSw` 会把它注入生成物
+ * 的 `CONFIG.sensitivePrefixes`，且**忽略站点传入的同名值**。
+ *
+ * 注意：`decideRequest` 为可内联保持自包含，函数体内另有同值字面量；改动本常量须同步该字面量。
+ */
+export const SENSITIVE_PREFIXES = Object.freeze(['/s/', '/r/', '/api/'])
+
+/**
  * 按路径选策略：首个 `path.startsWith(rule.match)` 命中即用其策略，否则默认。
  * @param {string} path
  * @param {{ rules?: Array<{ match: string, strategy: string }>, defaultStrategy?: string }} policy
@@ -50,14 +62,29 @@ export function cacheableResponse(meta) {
 }
 
 /**
- * 请求级决策：非 GET 或跨域 → 放行（bypass）；否则按策略路由。
+ * 请求级决策：非 GET 或跨域 → 放行（bypass）；敏感前缀 → 强制 network-only；
+ * 导航 → network-only；否则按策略路由。
+ *
+ * 敏感前缀是**硬底线**：`/s/` `/r/` `/api/`（自包含字面量，与 `SENSITIVE_PREFIXES` 同值）
+ * 恒不走缓存，站点 `rules` 的 `cache-first` 压不过它；`policy.sensitivePrefixes` 只作**追加**，
+ * 不能缩掉底线。函数体只用参数与字面量（供 `buildSw` 用 `.toString()` 内联）。
+ *
  * @param {{ method?: string, mode?: string, sameOrigin?: boolean, path?: string }} req
- * @param {{ rules?: Array<{ match: string, strategy: string }>, defaultStrategy?: string }} policy
+ * @param {{ rules?: Array<{ match: string, strategy: string }>, defaultStrategy?: string, sensitivePrefixes?: string[] }} policy
  * @returns {{ bypass: true } | { strategy: string }}
  */
 export function decideRequest(req, policy) {
   if (req.method !== 'GET') return { bypass: true }
   if (!req.sameOrigin) return { bypass: true }
   if (req.mode === 'navigate') return { strategy: 'network-only' }
+  const path = req.path || ''
+  const baseline = ['/s/', '/r/', '/api/']
+  for (const prefix of baseline) {
+    if (path.startsWith(prefix)) return { strategy: 'network-only' }
+  }
+  const provided = (policy && policy.sensitivePrefixes) || []
+  for (const prefix of provided) {
+    if (typeof prefix === 'string' && prefix && path.startsWith(prefix)) return { strategy: 'network-only' }
+  }
   return { strategy: strategyFor(req.path, policy) }
 }

@@ -11,6 +11,23 @@ test('buildSw：嵌入 VERSION 与策略；含 install/activate/fetch；确定�
   assert.equal(buildSw({ version: 'v1', rules: [] }), buildSw({ version: 'v1', rules: [] }))
 })
 
+test('buildSw：注入包内 sensitivePrefixes，忽略站点传入同名值（硬底线不可被站点删改）', () => {
+  const sw = buildSw({ version: 'v1', rules: [], sensitivePrefixes: ['/evil/'] })
+  const m = sw.match(/"sensitivePrefixes":(\[[^\]]*\])/)
+  assert.ok(m, 'CONFIG 未含 sensitivePrefixes')
+  assert.deepEqual(JSON.parse(m[1]), ['/s/', '/r/', '/api/'])
+  assert.doesNotMatch(sw, /\/evil\//)
+})
+
+test('buildSw 产物冒烟：敏感前缀即使站点 rules 命中 cache-first 也被压成 network-only', () => {
+  const sw = buildSw({ version: 'v1', rules: [{ match: '/s/', strategy: 'cache-first' }] })
+  const factory = new Function('addEventListener', 'self', 'caches', 'fetch', 'Response', 'URL',
+    sw + '\n;return { decideRequest, CONFIG }')
+  const { decideRequest, CONFIG } = factory(() => {}, {}, {}, () => {}, class {}, URL)
+  assert.deepEqual(CONFIG.sensitivePrefixes, ['/s/', '/r/', '/api/'])
+  assert.equal(decideRequest({ method: 'GET', mode: 'cors', sameOrigin: true, path: '/s/x' }, CONFIG).strategy, 'network-only')
+})
+
 test('buildSw：始终写入默认 network-only；内联自包含函数', () => {
   const sw = buildSw({ version: 'v1', rules: [] })
   assert.match(sw, /"defaultStrategy":"network-only"/)

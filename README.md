@@ -74,6 +74,8 @@ writeFileSync('public/sw.js', buildSw(config))
 
 写缓存前一律过硬条件守卫：`status === 200` 且 `Cache-Control` 不含 `no-store|private` 且 `Vary` 不含 `Cookie|Authorization|*`——带 token / 私密响应永不进缓存（`206` 分片亦不缓存）。
 
+**敏感前缀是硬底线**：`/s/` `/r/` `/api/` 命中者**永不缓存、也不从缓存读**（强制 `network-only`），**站点规则不能覆盖**——`rules` 把它们配成 `cache-first` 也压不过；`buildSw` 会把包内 `SENSITIVE_PREFIXES` 注入生成物 `CONFIG`，并**忽略站点传入的同名值**（站点只能加规则，不能删敏感前缀）。该清单与 analytics / auth 跨包同源（workspace `scripts/e2e/prefix-consistency.test.mjs` 核对）。
+
 **③ 注册**（应用入口或根布局的客户端侧，仅生产）：
 
 ```ts
