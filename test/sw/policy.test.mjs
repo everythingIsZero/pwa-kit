@@ -25,6 +25,7 @@ test('cacheableResponse：仅 200 且无 no-store/private 且 Vary 干净才可�
   assert.equal(cacheableResponse({ status: 206, cacheControl: 'public' }), false)       // RF1
   assert.equal(cacheableResponse({ status: 200, cacheControl: 'no-store' }), false)     // RF3
   assert.equal(cacheableResponse({ status: 200, cacheControl: 'private' }), false)
+  assert.equal(cacheableResponse({ status: 200, cacheControl: 'private="set-cookie"' }), false) // 参数化 private
   assert.equal(cacheableResponse({ status: 200, vary: 'Cookie' }), false)               // RF2
   assert.equal(cacheableResponse({ status: 200, vary: '*' }), false)
   assert.equal(cacheableResponse({ status: 200, vary: 'Authorization' }), false)

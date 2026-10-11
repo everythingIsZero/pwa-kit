@@ -38,7 +38,8 @@ export function cacheableResponse(meta) {
   const cacheControl = String(meta.cacheControl || '').toLowerCase()
   for (const part of cacheControl.split(',')) {
     const token = part.trim()
-    if (token === 'no-store' || token === 'private') return false
+    // no-store 无参数，精确匹配；private 允许参数化形式（如 private="set-cookie"）
+    if (token === 'no-store' || token.startsWith('private')) return false
   }
   const vary = String(meta.vary || '').toLowerCase()
   for (const part of vary.split(',')) {
