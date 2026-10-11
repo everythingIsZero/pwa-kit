@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-11
+
+### Added
+
+- `./sw` 出口 + Service Worker 生成器：站点构建期经 `buildSw(config)` 生成 `sw.js`，替代人手拷贝模板（`sw.js` 不提交）。
+
+### Changed
+
+- **安全修正**：SW 默认不缓存任何响应（含导航）；仅内容 hash 不可变静态走 `cache-first`，可缓存须 `200` 且 `Cache-Control` 无 `no-store|private`、`Vary` 不含 `Cookie|Authorization|*`。
+
 ## [0.2.2] - 2026-10-08
 
 ### Added
