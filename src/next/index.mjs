@@ -16,25 +16,34 @@ const isCacheControl = (h) => h && String(h.key).toLowerCase() === 'cache-contro
 
 /**
  * 幂等合并：把 `/sw.js` 的 no-cache 头并入既有 `headers()` 结果。
- * - 无 `/sw.js` 条目 → 追加一条，不动其他条目；
- * - 已有 `/sw.js` 条目 → 保留其全部头，仅在其未声明 `Cache-Control` 时补一条（**不覆盖站点已有头**）；
- * - 已声明 `Cache-Control` → 原样返回（尊重站点）。
+ * - `undefined` / `null`（站点没配 headers）→ 仅产出 `/sw.js` 一条；
+ * - 数组 → 逐条处理**所有** `/sw.js` 条目（不只手补首个）；无 `/sw.js` 条目则追加一条；
+ * - 每个 `/sw.js` 条目：保留其全部头，仅在其未声明 `Cache-Control` 时补一条（**不覆盖站点已有头**）；
+ * - 非数组（字符串 / 对象 / Promise 等）→ 抛 `TypeError`：旧实现会静默丢成 `[]`、站点头全失，
+ *   且症状隐蔽（构建期无报错、线上丢头），故显式失败而非静默退化。
  * @param {unknown} headers `nextConfig.headers` 的求值结果
  */
 function withSwNoCache(headers) {
-  const list = Array.isArray(headers) ? headers : []
-  const idx = list.findIndex((entry) => entry && entry.source === SW_SOURCE)
-
-  if (idx === -1) {
-    return [...list, { source: SW_SOURCE, headers: [SW_CACHE_CONTROL] }]
+  if (headers == null) {
+    return [{ source: SW_SOURCE, headers: [SW_CACHE_CONTROL] }]
+  }
+  if (!Array.isArray(headers)) {
+    throw new TypeError(
+      `withPwaKit: nextConfig.headers() 必须返回数组，收到 ${typeof headers}。` +
+        '非数组会被静默丢弃、站点响应头全失，故显式报错。',
+    )
   }
 
-  const entry = list[idx]
-  const entryHeaders = Array.isArray(entry.headers) ? entry.headers : []
-  if (entryHeaders.some(isCacheControl)) return list // 站点已声明 → 不覆盖、不重复
-
-  const merged = { ...entry, headers: [...entryHeaders, SW_CACHE_CONTROL] }
-  return [...list.slice(0, idx), merged, ...list.slice(idx + 1)]
+  let found = false
+  const next = headers.map((entry) => {
+    if (!entry || entry.source !== SW_SOURCE) return entry
+    found = true
+    const entryHeaders = Array.isArray(entry.headers) ? entry.headers : []
+    if (entryHeaders.some(isCacheControl)) return entry // 该条已声明 → 尊重站点，不覆盖、不重复
+    return { ...entry, headers: [...entryHeaders, SW_CACHE_CONTROL] }
+  })
+  if (!found) next.push({ source: SW_SOURCE, headers: [SW_CACHE_CONTROL] })
+  return next
 }
 
 /**
@@ -46,12 +55,27 @@ function withSwNoCache(headers) {
  * export default withPwaKit({ reactStrictMode: true })
  * ```
  *
+ * **仅支持对象形态** `nextConfig`：Next 还允许 `next.config.mjs` 导出函数
+ * `(phase, ctx) => config`，本函数无法安全展开函数（会静默丢成 `{}`、站点配置全失），
+ * 故收到函数时**抛 `TypeError`**。需要函数形态时在站点侧自行解包：
+ *
+ * ```js
+ * export default (phase, ctx) => withPwaKit(configFn(phase, ctx))
+ * ```
+ *
  * 不修改入参对象；站点原有 `headers()`（函数或数组）与其余配置字段全部保留。
  * @template {object} [T]
- * @param {T} [nextConfig] Next 配置对象（可省略）
+ * @param {T} [nextConfig] Next 配置对象（可省略；**不接受函数**）
  * @returns {T & { headers: () => Promise<Array<{ source: string, headers: Array<{ key: string, value: string }> }>> }}
  */
 export function withPwaKit(nextConfig = {}) {
+  if (typeof nextConfig === 'function') {
+    throw new TypeError(
+      'withPwaKit 仅支持对象形态的 nextConfig，收到函数（Next 的 (phase, ctx) => config 形态）。' +
+        '静默展开函数会丢成 {}、站点配置全失，故显式报错；' +
+        '请改在站点侧解包：export default (phase, ctx) => withPwaKit(configFn(phase, ctx))。',
+    )
+  }
   const base = nextConfig && typeof nextConfig === 'object' ? nextConfig : {}
   const existing = base.headers
   return {

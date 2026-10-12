@@ -87,3 +87,35 @@ test('withPwaKit：无 headers() 时（缺省 undefined）也返回合法数组'
   assert.ok(Array.isArray(entries))
   assert.ok(findSw(entries))
 })
+
+test('withPwaKit：函数式 nextConfig → 抛 TypeError（不静默丢成 {}）', () => {
+  assert.throws(
+    () => withPwaKit(() => ({ reactStrictMode: true })),
+    TypeError,
+    '函数式导出被静默展开会丢站点配置，必须显式报错',
+  )
+})
+
+test('withPwaKit：headers() 返回非数组 → 抛 TypeError（不静默丢站点头）', async () => {
+  await assert.rejects(withPwaKit({ headers: () => ({ source: '/x' }) }).headers(), TypeError)
+  await assert.rejects(withPwaKit({ headers: 'nope' }).headers(), TypeError)
+})
+
+test('withPwaKit：多份 /sw.js 条目全部补齐 no-cache（不只首个），站点头不丢', async () => {
+  const entries = await withPwaKit({
+    headers: () => [
+      { source: '/sw.js', headers: [{ key: 'X-A', value: '1' }] },
+      { source: '/other', headers: [] },
+      { source: '/sw.js', headers: [{ key: 'X-B', value: '2' }] },
+    ],
+  }).headers()
+  const sws = entries.filter((e) => e.source === '/sw.js')
+  assert.equal(sws.length, 2, '两份 /sw.js 条目都应保留')
+  for (const sw of sws) {
+    const cc = cacheControls(sw)
+    assert.equal(cc.length, 1, '每个 /sw.js 条目应恰好一条 Cache-Control')
+    assert.match(cc[0].value, /no-cache/)
+  }
+  assert.ok(sws[0].headers.find((h) => h.key === 'X-A'), '首份 /sw.js 站点头丢失')
+  assert.ok(sws[1].headers.find((h) => h.key === 'X-B'), '第二份 /sw.js 站点头丢失')
+})

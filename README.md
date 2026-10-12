@@ -139,9 +139,13 @@ const { updateAvailable, applyUpdate } = usePwaUpdate('/sw.js')
 ```ts
 // next.config.mjs —— /sw.js 必须 no-cache：否则 SW 文件被 HTTP 缓存，浏览器延迟发现新版本、升级被卡住。
 // withPwaKit 幂等合并站点已有 headers()：不覆盖其他头条目，只碰 /sw.js；站点已自定义 /sw.js 头则尊重不覆盖。
+// 仅支持对象形态 nextConfig；函数式导出（Next 的 (phase, ctx) => config）会抛 TypeError，
+// 需要时在站点侧解包：export default (phase, ctx) => withPwaKit(configFn(phase, ctx))
 import { withPwaKit } from '@hxym18/pwa-kit/next'
 export default withPwaKit({ reactStrictMode: true })
 ```
+
+`withPwaKit` 只接受对象；`headers()` 返回非数组会抛 `TypeError`（旧行为静默丢成 `[]`、站点头全失）；多份 `/sw.js` 条目全部补齐 `no-cache`。
 
 ```tsx
 // 应用入口（客户端）：等价于「③ 注册 + ⑤ 更新提示」的现成组件
@@ -175,5 +179,8 @@ pwa-kit 只管「装到主屏幕 + SW 缓存」，不管分享（那是 [share-k
 ## 测试
 
 ```bash
-npm test   # node --test：状态判定矩阵全覆盖
+npm install   # 安装 devDependency（react / react-dom / jsdom——仅测试用，不随包发布）
+npm test      # node --test：状态判定矩阵 + <PwaRegister/> 真实渲染行为
 ```
+
+`<PwaRegister/>` 的测试用真实 React + `react-dom/client` + jsdom 渲染（`registerSW` / `usePwaUpdate` 经 `node:module` 的 `registerHooks` 注入可控替身），覆盖无更新 / 有更新 / `renderUpdate` / 生产注册各分支；`react` 仍是可选 peer，devDependency 只服务测试。

@@ -2,6 +2,15 @@
 
 本仓遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 格式，版本语义按 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased]
+
+### Fixed
+
+- **`<PwaRegister/>` 补真实行为测试**（此前只断言导出存在 / 源码含 `"use client"`，用 `createElement:()=>null` 桩无法渲染，属零行为验证）：新增 `react` + `react-dom` + `jsdom` devDependency，用真实 React 19 + `react-dom/client` 覆盖——无更新渲染 `null`、有更新渲染按钮（label / className / 点击触发 `applyUpdate`）、`renderUpdate` 自绘分支、生产态 effect 调用 `registerSW`、非生产不注册、`dev:true` 强制注册。
+- **`<PwaRegister/>` 的 `process.env` 加守卫**：改为 `typeof process !== 'undefined' && process.env?.NODE_ENV === 'production'`。原裸用 `process.env.NODE_ENV`，在非静态替换 `process.env` 的打包器（浏览器）里会抛 `process is not defined`。
+- **`withPwaKit` 函数式 `nextConfig` 不再静默丢弃**：收到函数（Next 的 `(phase, ctx) => config` 形态）改为抛 `TypeError`（旧实现落 `{}`、站点配置全失）；需要时在站点侧解包 `(phase, ctx) => withPwaKit(configFn(phase, ctx))`。**仅支持对象形态**。
+- **`withPwaKit` 的 `headers()` 非数组不再静默丢站点头**：`headers()` 返回非数组（字符串 / 对象 / Promise 等）改为抛 `TypeError`；多份 `/sw.js` 条目改为**全部**补齐 `no-cache`（旧实现只补首个）。
+
 ## [0.5.0] - 2026-10-12
 
 ### Added

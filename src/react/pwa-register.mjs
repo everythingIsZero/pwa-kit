@@ -33,7 +33,10 @@ export function PwaRegister({
   renderUpdate,
 } = {}) {
   React.useEffect(() => {
-    if (dev || process.env.NODE_ENV === 'production') {
+    // `process` 守卫：本包无构建步，非静态替换的打包器（浏览器）里裸 `process.env` 会抛
+    // `process is not defined`；`?.` 再兜 `process.env` 缺失（如被 shim 成 undefined）。
+    const isProd = typeof process !== 'undefined' && process.env?.NODE_ENV === 'production'
+    if (dev || isProd) {
       registerSW(swUrl, dev ? { dev: true } : undefined)
     }
   }, [swUrl, dev])

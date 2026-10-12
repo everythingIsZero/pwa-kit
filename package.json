@@ -90,5 +90,10 @@
       "cache-policy": "1+f9681c71",
       "contracts": "1+189b5717"
     }
+  },
+  "devDependencies": {
+    "jsdom": "^30.1.2",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
   }
 }
