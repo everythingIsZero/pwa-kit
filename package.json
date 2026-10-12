@@ -44,6 +44,11 @@
       "import": "./src/manifest/index.mjs",
       "default": "./src/manifest/index.mjs"
     },
+    "./next": {
+      "types": "./src/next/index.d.ts",
+      "import": "./src/next/index.mjs",
+      "default": "./src/next/index.mjs"
+    },
     "./package.json": "./package.json"
   },
   "typesVersions": {
@@ -62,6 +67,9 @@
       ],
       "manifest": [
         "src/manifest/index.d.ts"
+      ],
+      "next": [
+        "src/next/index.d.ts"
       ]
     }
   },

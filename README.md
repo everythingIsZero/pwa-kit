@@ -16,6 +16,7 @@ PWA 接入 SDK：把「添加到主屏幕」这件事里**每站必然重复的�
 | `./ui` | 引导示意图（SVG 字符串资产，`pwaFigureOf(figureId)`）——按终端画的「点哪里」线框图 | 零依赖 |
 | `./sw` | SW 生成器：`buildSw(config)` 构建期生成站点 `public/sw.js`（默认不缓存；`version` 必填非空） | 零依赖 |
 | `./manifest` | 品牌 manifest 构建器：`buildManifest({name,...})` → PWA manifest 普通对象（默认值已避坑，站点纯覆盖） | 零依赖 |
+| `./next` | `withPwaKit(nextConfig)`：给 `/sw.js` 注入 `Cache-Control: no-cache`（合并进 `headers()`，幂等） | 零依赖（构建期 / Node 侧） |
 
 ## 引导口径（出资人 2026-10-05 拍板）
 
@@ -132,6 +133,25 @@ const { updateAvailable, applyUpdate } = usePwaUpdate('/sw.js')
 ```
 
 `applyUpdate()` 向 waiting SW 发 `SKIP_WAITING`（生成物的 `message` 监听据此 `self.skipWaiting()` 立即接管），并在 `controllerchange` 后自动 `location.reload()`。
+
+**⑥ 一行配置 + 现成注册组件**（可选，替代自己写头配置 / 注册组件）：
+
+```ts
+// next.config.mjs —— /sw.js 必须 no-cache：否则 SW 文件被 HTTP 缓存，浏览器延迟发现新版本、升级被卡住。
+// withPwaKit 幂等合并站点已有 headers()：不覆盖其他头条目，只碰 /sw.js；站点已自定义 /sw.js 头则尊重不覆盖。
+import { withPwaKit } from '@hxym18/pwa-kit/next'
+export default withPwaKit({ reactStrictMode: true })
+```
+
+```tsx
+// 应用入口（客户端）：等价于「③ 注册 + ⑤ 更新提示」的现成组件
+import { PwaRegister } from '@hxym18/pwa-kit/react'
+<PwaRegister />                                              // 生产注册 /sw.js；有新版本时渲染默认提示按钮
+<PwaRegister className="pwa-update" label="有新版本，点此刷新" />
+<PwaRegister renderUpdate={({ applyUpdate }) => <MyBanner onClick={applyUpdate} />} />
+```
+
+`withPwaKit` 走 `./next` 子路径（构建期 / Node 侧），**不进**浏览器核心根出口；`<PwaRegister/>` 用 hooks，带 `"use client"`，SSR 首帧返回 `null`（不炸 hydration）。
 
 ## 作用域声明（引入后页面发生什么 × 不发生什么）
 

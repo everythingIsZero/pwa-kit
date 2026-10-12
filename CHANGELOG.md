@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### Added
+
+- **`./next` 出口 + `withPwaKit(nextConfig)`**（DEF-4）：给 `/sw.js` 注入 `Cache-Control: no-cache`（存但每次再校验），避免 SW 文件被 HTTP 缓存而拖延升级发现。**幂等合并**站点已有 `headers()`（函数或数组）——**不覆盖站点已有头**，只碰 `/sw.js`；站点已自定义 `/sw.js` 的 `Cache-Control` 时尊重不覆盖。属构建期 / Node 侧能力，独立子路径出口，**不进**浏览器核心根出口；零依赖、不 import next。
+- **`<PwaRegister/>` 组件**（`./react`，B5）：生产环境注册 SW（`registerSW`，失败静默）+ 新版本更新提示（`usePwaUpdate`）。无更新时返回 `null`；默认渲染一个更新按钮，可经 `className` / `label` 或 `renderUpdate` 自绘。带 `"use client"`（客户端边界），SSR 安全（effect 只在浏览器跑）。
+
 ## [0.4.0] - 2026-10-11
 
 ### Added
