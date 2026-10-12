@@ -88,7 +88,7 @@
     "contracts": {
       "sensitive-prefixes": "1+262b9b7c",
       "cache-policy": "1+f9681c71",
-      "contracts": "1+189b5717"
+      "contracts": "1+2ca48235"
     }
   },
   "devDependencies": {
